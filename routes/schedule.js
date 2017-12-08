@@ -3,15 +3,16 @@ var router = express.Router();
 var scheduler = require('node-schedule');
 var utils = require('../utils/utils.js');
 var email = require('../utils/email.js');
+var crawler = require('../utils/crawler.js');
 var job = null;
 var rule = new scheduler.RecurrenceRule();
-rule.second = utils.convertToArray(1); // Defaults to every second
+rule.second = utils.convertToArray(5); // Defaults to every 5 second
 
 /* starts the scheduler. */
 router.get('/start', function(req, res, next) {
   if(job == null){
     job = scheduler.scheduleJob(rule, function(){
-      console.log('The answer to life, the universe, and everything!');
+      crawler.collect();
     });
     res.send('Scheduler started');
   } else {
@@ -30,21 +31,25 @@ router.get('/stop', function(req, res, next) {
   }
 });
 
-/* Configure the scheduler to run every second. */
+/* Configure the scheduler to run every few second. */
 router.get('/configure/seconds/:seconds', function(req, res, next) {
   var seconds = parseInt(req.params.seconds);
-  rule = new scheduler.RecurrenceRule();
-  rule.second = utils.convertToArray(seconds);
-  if(job != null){
-    job.cancel();
+  if(seconds < 5){
+    res.send("Crawler cannot run more frequently than 5 seconds");
+  } else {
+    rule = new scheduler.RecurrenceRule();
+    rule.second = utils.convertToArray(seconds);
+    if(job != null){
+      job.cancel();
+    }
+    job = scheduler.scheduleJob(rule, function(){
+      crawler.collect();
+    });
+    res.send(200);
   }
-  job = scheduler.scheduleJob(rule, function(){
-    console.log('Job rescheduled to run every '+seconds+' seconds');
-  });
-  res.send('Scheduler started to run every '+seconds+' seconds');
 });
 
-/* Configure the scheduler to run every minute. */
+/* Configure the scheduler to run every few minute. */
 router.get('/configure/minutes/:minute', function(req, res, next) {
   var minute = parseInt(req.params.minute);
   rule = new scheduler.RecurrenceRule();
@@ -53,15 +58,9 @@ router.get('/configure/minutes/:minute', function(req, res, next) {
     job.cancel();
   }
   job = scheduler.scheduleJob(rule, function(){
-    console.log('Job rescheduled to run every '+minute+' minute');
+    crawler.collect();
   });
-  res.send('Scheduler started to run every '+minute+' minute');
-});
-
-/* Send out test email */
-router.get('/sendEmail', function(req, res, next) {
-  email.sendEmail('yo');
-  res.send('Send email');
+  res.send(200);
 });
 
 module.exports = router;
