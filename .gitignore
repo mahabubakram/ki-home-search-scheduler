@@ -1,0 +1,7 @@
+.idea
+.metadata
+.project
+.tmp
+.log
+immo.db
+node_modules
